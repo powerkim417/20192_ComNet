@@ -11,19 +11,29 @@
   - 네트워크 계층 프로토콜은 모든 호스트와 라우터에서 적용된다.
   - 라우터는 자신을 통과하는 모든 IP 데이터그램의 헤더 필드를 확인한다.
 
-#### 2 Key network-layer functions
+### 4.1.1 2 Key network-layer functions
 
 - Forwarding: 패킷을 라우터의 입력 포트로부터 적절한 출력 포트로 보냄
 - Routing: 패킷의 source로부터 destination까지의 경로를 결정
   - 라우팅 알고리즘 사용
 
-### Data Plane
+#### Data Plane
 
 - 
 
-### Control Plane
+#### Control Plane
+
+### 4.1.2 Network Service Model
 
 ## 4.2 What's inside a router (11~29)
+
+### 4.2.1 Input port functions & Destination-based forwarding
+
+### 4.2.2 Switching
+
+### 4.2.3-4 Output port queueing
+
+### 4.2.5 Packet Scheduling
 
 ## 4.3 IP: Internet Protocol (30~65)
 
@@ -40,11 +50,11 @@
     - 오류 보고
     - 라우터 신호를 받음???
 
-### Datagram format
+### 4.3.1 Datagram format
 
 <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191028100946481.png" alt="image-20191028100946481" style="zoom:80%;" />
 
-### Fragmentation
+### 4.3.2 Fragmentation
 
 - 네트워크 링크는 MTU(최대 전송 크기)가 있음
   - 서로 다른 종류의 링크는 다른 MTU를 가짐
@@ -65,7 +75,7 @@
     - MTU가 1000인 곳에서 980/8 = 122...4 이므로 한번에 옮겨지는 데이터는 980이 아니고 980-4=976 이다!!
 - 원래 데이터그램의 총 데이터 크기가 3980 이므로 각각 1480, 1480, 1020 으로 들어가게 된다
 
-### IPv4 addressing
+### 4.3.3 IPv4 addressing
 
 - IP 주소: 32비트의 호스트/라우터 인터페이스 식별자
   - 인터페이스: 호스트/라우터와 물리적 링크 사이의 연결
@@ -186,7 +196,7 @@
     - 이 경우 subnet prefix가 22비트이고, 호스트 주소는 9비트 이므로 가운데에 1개의 비트가 남는데, 이 1개의 비트로 2개의 서브넷을 또 나눌 수 있다!
     - 이 경우 subnet prefix는 22 + 1 = 23비트가 된다.
 
-  - 4개의 부서를 가진 단체가 10.2.22.0/23 의 IP 주소공간을 가지고 있고, 각 부서가 각각 200개, 71개, 55대, 41개의 host를 수용할 수 있어야 한다면 각 subnet network number는?
+  - 마지막 예제: 4개의 부서를 가진 단체가 10.2.22.0/23 의 IP 주소공간을 가지고 있고, 각 부서가 각각 200개, 71개, 55대, 41개의 host를 수용할 수 있어야 한다면 각 subnet network number는?
 
     - 200 <= 256-2 이므로 host address 길이는 8비트가 되고, 서브넷 길이는 8비트가 된다.
       - 10.2.22.0/24
@@ -215,13 +225,16 @@
 
 #### Classless InterDomain Routing(CIDR)
 
-여기부터
+- 주소에서 서브넷 부분이 임의의 길이를 가지게 됨
+- a.d.c.d/x 의 형태로 주소를 가지며, x는 주소에서 서브넷 부분의 비트의 갯수
 
 #### Dynamic Host Configuration Protocol(DHCP)
 
-### Network Address Translation(NAT)
+- Host가 IP 주소를 얻는 방법
 
-### IPv6
+### 4.3.4 Network Address Translation(NAT)
+
+### 4.3.5 IPv6
 
 보충자료
 
@@ -229,8 +242,8 @@
 
 보충자료
 
-### Match
+### 4.4.1 Match
 
-### Action
+### 4.4.2 Action
 
-### OpenFlow examples of match-plus-action in action
+### 4.4.3 match-plus-action 작업의 OpenFlow 예시
