@@ -54,6 +54,19 @@
 
 <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191028100946481.png" alt="image-20191028100946481" style="zoom:80%;" />
 
+#### Processing of IP datagram at a router
+
+0. IP 데이터그램 수신
+1. IP 헤더 유효성 검사
+2. IP 헤더의 옵션 처리
+3. 목적지 IP 주소 파싱
+4. 라우팅 테이블 확인
+5. TTL 감소
+6. (필요한 경우) Fragmentation 실시
+7. Checksum 계산
+8. 다음 hop으로 전송
+9. (필요한 경우) ICMP 패킷 전송
+
 ### 4.3.2 Fragmentation
 
 - 네트워크 링크는 MTU(최대 전송 크기)가 있음
@@ -330,11 +343,190 @@
 
 ### 4.3.4 Network Address Translation(NAT)
 
+- 네트워크 주소 변환
 
+- SOHO(Small office, home office)가 확산됨에 따라 ISP가 SOHO 네트워크의 주소범위에 인접한 부분을 이미 할당해버렸다는 문제가 발생할 수 있음
+
+- 이를 해결하기 위해 네트워크 주소들이 그 네트워크 내부 장비에서만 의미가 있는 네트워크를 만듦! = private network
+
+  <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113002153356.png" alt="image-20191113002153356" style="zoom:80%;" />
+  - 그림에서 10.0.0/24의 주소들은 local network 내부에서만 의미를 가진다.
+    - local network 내에서의 데이터그램들의 송/수신지는 모두 10.0.0/24 블럭의 주소를 가짐
+  - 해당 local network로부터 나온 모든 데이터그램은 모두 동일한 NAT IP주소 138.76.29.7에 서로 다른 포트 번호를 가진다.
+
+- 외부-내부 간 주소 변환은 NAT translation table 이용
+
+  - NAT 라우터 내부에 존재
+  - 데이터그램 도착 시 변환
+
+#### NAT의 의의
+
+- local network는 외부와 연관된 하나의 ip 주소만을 사용함. 즉, 외부에서 보았을 때는 local network 전체가 하나의 장비처럼 동작함
+  - ISP를 통해 여러 개의 주소를 할당받을 필요 없음: 모든 장치에 대해서 1개의 주소만!
+  - 외부에 알릴 필요 없이 local network에서 장치의 주소를 변경할 수 있음
+  - local network에서 장치의 주소를 변경하지 않고 ISP를 변경할 수 있음
+  - 외부에서 내부의 장치에 대해 명시적으로 주소를 지정할 수도, 볼 수도 없음(보안 강화) 
+
+#### 구현
+
+- NAT 라우터가 갖춰야 할 것들
+  - 모든 나가는 데이터그램의 {송신지 IP주소, 포트 번호}를 {NAT IP주소, 새 포트 번호}로 치환해야 한다.
+    - 송신지 IP 주소가 local이고, NAT IP주소가 외부 기준
+    - 외부의 클라이언트/서버는 해당 데이터그램에 대한 응답으로 {NAT IP주소, 새 포트 번호}를 수신지 주소로 사용할 것임
+  - NAT translation table에서 모든 {송신지 IP주소, 포트 번호} - {NAT IP주소, 새 포트 번호} 변환 쌍을 기억할 수 있어야 한다.
+    - 변환되는 주소 정보는 데이터그램이 처음 나갈 때 저장됨
+  - 모든 들어오는 데이터그램의 도착지 정보에서 {NAT IP주소, 새 포트 번호}를 NAT table에 저장된 해당하는 {송신지 IP주소, 포트 번호}로 치환해야 한다.
+
+#### 송/수신 과정
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113005515095.png" alt="image-20191113005515095" style="zoom:80%;" />
+
+1. 호스트 10.0.0.1이 3345 포트에서 데이터그램을 128.119.40.186, 80 에 보낸다.
+2. NAT 라우터가 데이터그램의 출발지 주소를 10.0.0.1, 3345에서 138.76.29.7, 5001로 변환하고, **이 정보를 테이블에 저장한다.**
+3. 답장 데이터그램이 NAT 라우터에 도착하였고, 수신지 주소는 138.76.29.7, 5001
+4. NAT 라우터는 답장 데이터그램의 도착지 주소를 테이블을 참조하여 138.76.29.7, 5001 에서 10.0.0.1, 3345로 변환한다.
+
+#### 특징
+
+- 포트 번호의 필드가 16비트로 길기 때문에 WAN 쪽의 하나의 IP 주소에 대해 약 60000개의 동시 접속을 지원한다!
+- 논쟁거리
+  - 라우터는 계층 3(Network layer)까지만 처리해야 함
+  - 주소 부족 문제는 IPv6으로 해결할 수 있음
+  - end-to-end argument(호스트가 IP 주소와 포트번호를 수정하는 일 없이 직접 통신해야 함)를 위반
+    - 애플리케이션 설계자가 해당 주소가 NAT 주소일 가능성까지 고려해야 함..(Ex. P2P 어플리케이션)
+  - 해결책: NAT traversal
+    - 클라이언트가 NAT을 거치지 않고 가로질러서 서버와 통신하는 방식
+
+#### Relaying
+
+- 공용 인터넷의 호스트는 종종 개인 네트워크의 호스트에 통신을 시도하는데 실패할 수 있다.
+- 두 다른 개인 네트워크 소속의 호스트끼리의 통신에서도 같은 문제가 발생할 수 있음
+- 해결책: Relaying(Skype에서 사용)
+  - NAT 기술이 적용된 클라이언트가 Relay에 연결을 생성
+  - 외부 클라이언트가 Relay에 연결
+  - Relay가 두 연결 사이에서 패킷의 다리 역할을 함
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113015912631.png" alt="image-20191113015912631" style="zoom:80%;" />
 
 ### 4.3.5 IPv6
 
-보충자료
+#### 등장 계기
+
+- 32비트의 주소 공간이 곧 전부 할당되어 주소 부족 문제가 발생할 수 있음
+- 헤더의 포맷이 처리 및 포워딩의 속도 향상에 영향을 미치므로 서비스의 퀄리티를 높이기 위해 새로운(간결한) 양식 고안???
+
+#### 특징
+
+- 더 긴 주소 필드
+  - 128비트는 최대 3.4*10^38개의 호스트를 지원할 수 있음
+- 간결해진 헤더 포맷
+  - 포맷을 간결하게 하여 각 헤더에 대한 처리를 빠르게 한다.
+  - 각 필드는 모두 고정 크기
+  - IPv4와 IPv6 필드를 비교했을 때
+    - 동일: version
+    - IPv6에서 사라진 필드: header length, ID/flags/frag offset, header checksum
+    - IPv6에서 대체된 필드
+      - Datagram length → Payload length
+      - Protocol type → Payload length
+      - TTL(Time To Live) → Hop limit
+      - TOS(Type Of Service) → Traffic class(priority)
+    - IPv6에서 추가된 필드: Flow label
+
+#### IPv6 주소 지정
+
+주소 종류에 따라 분류
+
+- Unicast: 단일 네트워크 인터페이스
+- Multicast: 패킷이 서로 다른 위치에 있는 여러 네트워크 인터페이스에 모두 보내지는 경우
+- Anycast: 패킷이 서로 다른 위치에 있는 여러 네트워크 인터페이스 중 한 곳에만 보내지는 경우
+  - 가장 가까운 곳, ...
+
+#### IPv6의 기능
+
+- 옵션에 대한 유연한 지원
+  - 선택적인 확장 헤더를 통해 더 효율적이고 유연한 옵션 사용 가능
+- Flow label 기능
+  - "Flow label"로 특정 QoS를 필요로 하는 패킷의 흐름을 식별
+- 보안
+  - 인증 및 기밀성이 내장되어 있음 
+- 큰 패킷 지원
+  - 64KB 이상의 "Jumbo payload" 에 대해서도 지원
+- Fragmentation은 출발지에서만 가능
+  - 출발지는 경로에서의 최소 MTU를 미리 확인해야 함
+- Checksum 필드가 없음
+  - 라우터에서의 패킷 처리 시간을 줄이기 위해 제거
+
+#### IPv6 Datagram Format
+
+- 40바이트 고정 길이 헤더
+- Fragmentation은 허용되지 않음
+  - fragmentation 및 재결합 작업은 시간이 많이 걸리므로 라우터가 아닌 출발지/도착지에서만 일어남
+  - 라우터에서 데이터그램이 너무 커서 출력 링크로 전달될 수 없는 경우 데이터그램을 폐기하고 패킷이 너무 크다는 ICMP 오류 메시지를 송신자에게 보낸다. 그 후 송신자는 IP 데이터그램 크기를 줄여서 다시 보낸다.
+
+![image-20191113020355426](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113020355426.png)
+
+- Version field: IP 버전 번호 인식. IPv6의 경우 "6"
+- Priority(=Traffic class): 데이터그램 간 우선순위 부여
+- Flow label: 같은 "Flow"의 데이터그램을 식별(Flow의 정확한 의미는 아직 정의되지 않음..)
+  - Flow마다 다른 처리를 해야 하는 경우 활용?
+- Payload length: 헤더를 제외한 데이터의 길이. 최대 65536B
+- Next header: 데이터의 상위 계층 프로토콜을 식별(Ex. TCP, UDP)
+- Hop limit: 패킷이 라우터로부터 폐기될 때까지 이동할 수 있는 hop의 수
+- ~~Checksum: 각 hop에서의 처리 시간을 줄이기 위해 데이터그램 포맷에서 삭제됨~~
+- Options: 표준 IPv6 헤더 필드에서는 제외되었으나, 헤더 밖에서 사용될 수 있음.
+  - 이 필드가 제외됨에 따라 헤더가 40바이트 고정 길이를 가질 수 있게 됨
+- ICMPv6: ICMP의 새로운 버전
+  - "Packet Too Big"와 같은 추가적인 메시지 종류 지원
+  - 멀티캐스트 그룹 관리 기능
+
+#### IPv4에서 IPv6로 전환
+
+- 모든 라우터가 동시에 업그레이드될 수는 없음...
+
+  - "flag day"와 같이 모든 장비가 업그레이드되는 날짜를 각각 정하는 방법은 안됨
+  - 결국 IPv4 라우터와 IPv6 라우터가 혼용되어야 함!
+
+- 해결책: Tunneling!
+
+  - IPv6 데이터그램이 IPv4 데이터그램의 payload로 운반되어 IPv4 라우터를 지나가는 방식
+
+    <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113024912193.png" alt="image-20191113024912193" style="zoom:80%;" />
+
+#### Tunneling
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113024949090.png" alt="image-20191113024949090" style="zoom:80%;" />
+
+- 터널의 송신(그림에서 라우터 B)에 도착하면, IPv6 데이터그램을 받고, IPv4 데이터그램의 데이터 필드에 이를 넣는다.
+- 목적지 주소는 터널의 수신 측의 IPv6 노드(그림에서 라우터 E)로 적어서 터널의 첫번째 노드(그림에서 라우터 C)로 보낸다.
+- 터널 내부의 라우터들은 IPv4 데이터그램이 IPv6 데이터그램을 가지고 있다는 것을 모른 채 처리
+- 터널 수신 측 IPv6 노드(그림에서 라우터 E)는 IPv4 데이터그램을 받고 이 데이터그램이 IPv6 데이터그램인 것을 확인(IPv4 데이터그램 프로토콜 번호 필드가 41)하고, 이를 IPv6 데이터그램으로 만들어서 다음 IPv6 노드에 보낸다.
+
+#### IPv6 채택 현황
+
+- Google: 전체 클라이언트의 8%만이 IPv6으로 접속, 그러나 점점 늘어나고 있음
+- NIST: 미국 정부 도메인의 1/3의 IPv6 지원
+- 구축 및 사용까지 많은 시간이 걸릴 것
+
+#### IPv6 관련 추가 자료
+
+##### 주소 획득 방법
+
+- 1993년부터는 DHCP 활용
+  - IPv4 주소 및 기본 라우터/DNS 관련 정보
+- IPv6 출현 이후
+  - DHCPv6
+  - Stateless autoconfiguration protocol! (IPv4에서는 없었던 개념)
+
+##### IPv6 주소 범위
+
+Global과 link-local의 2가지 type 존재
+
+- Global type
+- Link local
+
+##### Auto-configuration(자동 구성)
+
+##### Anycast address
 
 ## 4.4 Generalized Forward and SDN (66~74)
 

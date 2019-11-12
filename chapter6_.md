@@ -24,7 +24,7 @@
 
 ### 6.3.4 DOCSIS: 케이블 인터넷 접속을 위한 링크 계층 프로토콜
 
-## 6.4 asdfasdf asdf adsf (???~???)
+## 6.4 LANs (2~46)
 
 ### 6.4.1 링크 계층 주소체계와 ARP
 
@@ -34,13 +34,11 @@
 
 ### 6.4.4 가상 근거리 네트워크(VLAN)
 
-## 6.5 asdfasdf asdf adsf (???~???)
+## ~~6.5 Link Virtualization: MPLS~~
 
-### 6.5.1 다중 프로토콜 레이블 스위칭(MPLS)
+## 6.6 Data Center Networking (47~71)
 
-## 6.6 asdfasdf asdf adsf (???~???)
-
-## 6.7 asdfasdf asdf adsf (???~???)
+## 6.7 A day in the life of a web request (72~80)
 
 ### 6.7.1 DHCP, UDP, IP 그리고 이더넷
 
