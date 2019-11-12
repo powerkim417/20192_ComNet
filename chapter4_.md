@@ -70,7 +70,7 @@
 - 4000바이트 크기의 데이터그램을 1500바이트씩 나누게 된다
 - 여기서 1500바이트가 각각 1480바이트의 데이터와 20바이트의 헤더로 채워질텐데
 - 각 Fragment는 8의 배수의 크기를 가져야 하므로 
-- offset은 데이터에 해당하는 1480바이트를 8로 나눈 값씩 증가한다???(1480/8 = 185)
+- offset(데이터의 시작점?)은 데이터에 해당하는 1480바이트를 8로 나눈 값씩 증가한다???(1480/8 = 185)
   - 만약 데이터에 해당하는 크기가 8의 배수가 아니라면
     - MTU가 1000인 곳에서 980/8 = 122...4 이므로 한번에 옮겨지는 데이터는 980이 아니고 980-4=976 이다!!
 - 원래 데이터그램의 총 데이터 크기가 3980 이므로 각각 1480, 1480, 1020 으로 들어가게 된다
@@ -228,11 +228,109 @@
 - 주소에서 서브넷 부분이 임의의 길이를 가지게 됨
 - a.d.c.d/x 의 형태로 주소를 가지며, x는 주소에서 서브넷 부분의 비트의 갯수
 
-#### Dynamic Host Configuration Protocol(DHCP)
+##### Hierarchical Addressing(계층적 주소)
 
-- Host가 IP 주소를 얻는 방법
+- 경로 집약: 여러 네트워크를 알리기 위해 하나의 network prefix를 사용하는 것
+
+  <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191112194434619.png" alt="image-20191112194434619" style="zoom:80%;" />
+
+  - 그림에서는 <u>200.23."0001xxx</u>0".0/23의 네트워크 8개를 알리기 위해 network prefix 200.23."00010000".0/20을 사용함
+  - 그림의 Fly-By-Night-ISP와 ISPs-R-Us는 각각의 회사의 ISP를 의미
+
+- 다른 경우
+
+  <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191112194504935.png" alt="image-20191112194504935" style="zoom:80%;" />
+
+  - 그림과 같이 Fly-By-Night-ISP가 ISPs-R-Us를 인수하고, Organization 1을 자회사인 ISP-R-Us의 네트워크에 연결했을 때
+  - Organization 1의 모든 라우터와 호스트의 IP 주소를 기존 ISPs-R-Us의 주소 블록 내의 주소로 변경해도 되지만, 이는 비용도 많이 들 뿐만 아니라 후에 다른 ISP로 또 이동하게 되면 또 다시 바꿔야 한다는 점에서 비효율적이다.
+  - 해결책) ISPs-R-Us에서 기존의 199.31.0.0/16 뿐만 아니라 Organization 1의 주소인 200.23.18.0/23도 광고하도록 추가한다.
+  - 그러면 200.23.18.0/23 블록 안의 주소로 라우팅할 때 "Longest prefix matching"에 의해 20비트가 일치하는 Fly-By-Night-ISP 대신 23비트가 일치하는 ISPs-R-Us로 라우팅할 수 있게 됨!
+
+#### How to get IP address?
+
+- **<u>네트워크는 어떻게 IP주소의 서브넷 부분을 얻을 수 있을까?</u>**
+
+  - 네트워크의 공급자 ISP의 주소 공간에서 할당된 <u>부분</u>을 받아옴
+
+  - Ex) 소비자에게 네트워크를 제공하기 위해 3비트가 할당된 경우
+
+    ![image-20191111111207320](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191111111207320.png)
+
+- **<u>그러면 ISP는 어떻게 자신의 주소 블록을 얻을 수 있을까?</u>**
+
+  - ICANN: Internet Corporation for Assigned Names and Numbers
+    - 주소 할당
+    - DNS 관리
+    - 도메인 이름을 할당하여 분쟁을 해결
+
+- <u>**Host는 어떻게 IP 주소를 얻을 수 있을까?**</u>
+  - 시스템 관리자가 파일에 직접 하드코딩...
+  - Dynamic Host Configuration Protocol(DHCP)!!
+    - 서버에서 동적으로 주소를 가져옴(plug-and-play)
+
+##### DHCP의 목표
+
+- 호스트가 네트워크에 접속할 때 네트워크 서버로부터 자신의 IP주소를 동적으로 받을 수 있게 하는 것
+  - 자신의 주소의 lease 기간을 갱신할 수 있다
+  - 주소 재사용이 가능하다(접속되어있을 때만 주소를 소유하므로)
+  - 모바일 유저도 지원
+
+##### DHCP 개요
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191111102809776.png" alt="image-20191111102809776" style="zoom:80%;" />
+
+- (optional) 호스트는 "**DHCP discover**" 메시지를 브로드캐스트한다.
+  - DHCP 서버를 찾을 때
+- (optional) DHCP 서버는 "**DHCP offer**" 메시지로 응답한다.
+  - DHCP 서버를 찾는 호스트의 메시지에 대답함
+- 호스트는 "**DHCP request**" 메시지로 IP주소를 요청한다.
+- DHCP 서버는 "**DHCP ack**" 메시지로 주소를 보낸다.
+
+##### DHCP의 의의
+
+- DHCP는 서브넷에서의 IP주소 뿐만 아니라 다음의 값들도 반환한다!
+  - 클라이언트로 가는 첫번째 라우터(first-hop router)의 주소
+  - DNS 서버의 이름과 IP 주소
+  - 네트워크 마스크(주소의 network/host 부분을 나타냄)
+
+##### 예시
+
+- 클라이언트 → DHCP 서버
+
+  <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191111104213810.png" alt="image-20191111104213810" style="zoom:80%;" />
+
+  - 컴퓨터를 연결하기 위해서는 IP주소, first-hop router, DNS 서버의 주소가 필요 → DHCP 이용!
+  - DHCP request → UDP → IP → 802.1 이더넷으로 캡슐화됨
+  -  LAN에서 브로드캐스트되는 이더넷 프레임(dest: FFFFFFFFFFFF???)이 DHCP 서버가 돌아가는 라우터에서 수신됨
+  - 이더넷 → IP → UDP → DHCP로 demux됨
+
+- DHCP 서버 → 클라이언트
+
+  <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191111104104302.png" alt="image-20191111104104302" style="zoom:80%;" />
+  - DHCP 서버는 클라이언트의 IP주소, first-hop router의 IP주소, DNS서버의 이름 및 IP주소를 담은 DHCP ACK를 만듦
+  - 클라이언트에게 포워딩된 DHCP 서버에서 캡슐화한 프레임은 DHCP 서버에서 클라이언트로 demux됨
+  - 클라이언트는 이제 자신의 IP주소, DNS서버의 이름 및 IP주소, 자신의 first-hop router의 IP 주소를 알 수 있음
+
+#### IP 주소의 문제점
+
+1990년에 2가지 문제 대두
+
+- IP address Exhaustion (IP 주소 고갈)
+  - Class A, B, C의 주소 구조가 비효율적!
+    - Class B의 경우 대부분 단체에서 쓰기 충분하나, 미래를 대비해야 함!
+    - Class C는 너무 작음(256?)
+    - 추세 상 Class B의 할당이 1994년에 고갈될 것으로 예측
+- IP routing table size (IP 라우팅 테이블 크기의 계속적인 증가)
+  - 테이블 엔트리 수에 반영되는 인터넷의 네트워크 수가 증가
+    - 1991~1995년 사이 10개월동안 라우팅 테이블의 크기가 2배씩 증가함
+    - 이는 라우터 처리능력과 메모리 할당에 부담을 가함
+- 해결책
+  - 단기적 해결책: CIDR, NAT
+  - 장기적 해결책: IPv6
 
 ### 4.3.4 Network Address Translation(NAT)
+
+
 
 ### 4.3.5 IPv6
 
