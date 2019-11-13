@@ -522,18 +522,194 @@
 Global과 link-local의 2가지 type 존재
 
 - Global type
+  - 공용 IPv4 주소와 유사
+  - 주소 지정은 ICANN에 의해 제어되며, 이러한 주소가 한번 할당되면 다른 인터넷에 연결된 글로벌 IPv6 호스트에 의해 사용될 수 있다.
 - Link local
+  - 개인 IPv4 주소와 유사
+  - 같은 네트워크 세그먼트의 호스트끼리 통신하는데만 사용할 수 있다. 라우터는 link local 주소를 포워드하면 안됨
 
-##### Auto-configuration(자동 구성)
+##### Auto-configuration(자동 구성)???
+
+- 128비트 길이의 IPv6 주소를 수동으로 구성할 필요 없음
+- Link-local address
+  - FE80::/10의 link local prefix 및 64비트 인터페이스 식별자(48비트 MAC 주소 기반)를 사용하여 자동으로 생성 가능
+- Global address
+  - link-local 자동 구성에 의해 식별자 생성
+  - 이렇게 생성된 global prefix 뒤에 붙음
+    - 일반적으로, global prefix는 회사 또는 end user에게 분배된다.
+- MAC 주소를 사용했을 때의 보안 문제
+  - 웹사이트에서 노드가 자주 연결되는 것을 트래킹하여 개인정보를 수집할 수 있음
+  - 해결책: 제한된 시간동안 작용하는 random identifier(RFC 3041)을 생성하여 사용
 
 ##### Anycast address
 
+- 하나의 주소가 여러 인터페이스에 할당되었고, 전달은 이 중 하나의 인터페이스에만 이루어지는 경우
+  - anycast address를 가진 여러 노드와 연결된 라우터
+- 어느 인터페이스를 고르는지는 라우터의 구현에 따라 다름! (Ex. round-robin algorithm)
+- CDN에 의해 사용됨
+  - Anycast는 일반적으로 request를 효율적으로 처리할 수 있는 용량으로 들어오는 트래픽을 제일 가까운 데이터 센터로 라우트한다.
+  - 높은 트래픽 부피와 네트워크 혼잡 문제를 해결하기 위해 선택적 라우팅 사용
+
 ## 4.4 Generalized Forward and SDN (66~74)
 
-보충자료
+- 포워딩의 종류는 2가지가 있음
+  - Destination-based forwarding: Forwarding table 이용
+  - Generalized forwarding: Flow table 이용
 
-### 4.4.1 Match
+- 각 라우터는 logically centralized routing controller에 의해 계산되고 분배되는 flow table을 가지고 있음
 
-### 4.4.2 Action
+![image-20191113143429837](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113143429837.png)
 
-### 4.4.3 match-plus-action 작업의 OpenFlow 예시
+- Flow: 헤더 필드에 의해 정의됨
+- 일반화된 포워딩: 기본적인 패킷 처리 규칙
+  - Pattern: 패킷 헤더 필드에 있는 값 매칭
+  - Actions: 매치된 패킷에 대해 drop, forward, modify하거나 매치된 패킷을 컨트롤러로 전송
+  - Priority: 중복 패턴 문제를 해결
+  - Counter: 바이트 수와 패킷의 수
+  - 라우터의 flow table이 라우터의 match, action 규칙을 정한다.
+
+### OpenFlow 예시
+
+##### Data plane abstraction
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113144902513.png" alt="image-20191113144902513" style="zoom:80%;" />
+
+##### Flow Table Entries
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113145037461.png" alt="image-20191113145037461" style="zoom:80%;" />
+
+- Rule
+  - Switch port
+  - Link layer field: VLAN ID, MAC 출발지 주소, MAC 도착지 주소, 이더넷 타입
+  - Network layer field: IP 출발지 주소, IP 도착지 주소, IP 프로토콜 종류
+  - Transport layer field: TCP 출발지 포트, TCP 도착지 포트
+- Action 5가지
+  - 패킷을 포트로 포워딩
+  - 캡슐화한 뒤 컨트롤러로 포워딩
+  - 패킷 드롭(= block = 포워딩하지 않음)
+  - 일반 처리 파이프라인으로 보냄
+  - 필드 수정
+- Stats
+  - 패킷 및 바이트 카운터
+
+###### Flow Table Entry Examples
+
+- Destination-based forwarding
+
+  ![image-20191113150535145](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113150535145.png)
+
+  - IP 데이터그램의 목적지 IP 주소가 51.6.0.8으로 정해졌고, 라우터의 6번 출력 포트로 포워딩되어야 한다.
+
+- Destination-based layer 2(switch) forwarding
+
+  ![image-20191113151015866](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113151015866.png)
+
+  - MAC 주소 22:A7:23:11:E1:02 인 layer 2(링크 계층) 프레임은 3번 출력 포트로 포워딩되어야 한다.
+
+- Firewall
+
+  ![image-20191113150726694](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113150726694.png)
+
+  - TCP 22번 포트가 목적지인 모든 데이터그램을 포워딩하지 않는다(block).
+
+  ![image-20191113150848755](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113150848755.png)
+
+  - Host의 IP주소가 128.119.1.1인 모든 데이터그램을 포워딩하지 않는다(block).
+
+##### OpenFlow abstraction
+
+Match + Action: 서로 다른 종류의 디바이스를 통일하여 처리
+
+|          |            Match            |                  Action                   |
+| :------: | :-------------------------: | :---------------------------------------: |
+|  Router  |  가장 긴 도착지 IP prefix   |            링크를 통해 포워딩             |
+|  Switch  |      도착지의 MAC 주소      |            포워딩 또는 플러딩             |
+| Firewall | IP 주소와 TCP/UDP 포트 번호 |              허용 또는 거부               |
+|   NAT    |       IP 주소와 포트        | 주소와 포트를 재작성(해당하는 NAT 주소로) |
+
+##### OpenFlow example
+
+호스트 h5, h6에서 나온 데이터그램이 s1과 s2를 거쳐 각각 h3, h4로 도착해야 하는 경우
+
+(h5 → h3, h6 → h4)
+
+![image-20191113152239201](C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113152239201.png)
+
+- s3
+  - Match: IP src가 10.3.\*.\*이고(h5, h6), IP dst가 10.2.\*.\*이고(h3, h4)인 경우 / Action: s3의 3번 포트로 포워딩
+  - s3의 3번 포트로 포워딩
+- s1
+  - Match: 진입 포트가 1번 포트이고, IP src가 10.3.\*.\*이고(h5, h6), IP dst가 10.2.\*.\*이고(h3, h4)인 경우 / Action: s1의 4번 포트로 포워딩
+  - 다른 포트에서 오는 데이터그램은 모두 막힘!
+- s2
+  - Match: 진입 포트가 2번 포트이고, IP dst가 10.2.0.3(h3)인 경우 / Action: s2의 3번 포트로 포워딩
+  - Match: 진입 포트가 2번 포트이고, IP dst가 10.2.0.4(h4)인 경우 / Action: s2의 4번 포트로 포워딩
+
+### Software Defined Networking(SDN)
+
+#### 등장 계기
+
+- 트래픽 패턴의 변화
+- Data center networks
+- 초거대 크기의 네트워크
+  - 수천 개의 서버
+  - 수천 개의 스위치(테라 비트 네트워크 용량)
+  - 3-4티어 아키텍쳐 → 50% 이상의 네트워크 용량이 스위치 연결에 사용됨 → 비효율적!
+- 이에 따른 새로운 네트워킹 패러다임의 필요성 증대
+- 벤더 종속성
+  - 열린 인터페이스와 표준 API의 부족 → 운영자들이 네트워크를 조정할 수 없게 됨
+  - 회사의 요구와 유저의 요구가 시장에 반영되기까지 오랜 시간이 걸림???
+- IP 프로토콜의 기초적인 문제
+  - 프로토콜이 독립적으로 정의되어 각각 특정 문제를 해결하지만 추상화의 이점을 받지 못함
+    - 6776개의 RFC
+  - 현재의 인터넷은 많은 새로운 미들박스 필요
+    - IPv4 주소 부족 → NAT, IPv6
+    - 보안 → IDS/IPS, VLAN, VPN
+    - 관리 → 인증, Qos, ACL, ...
+  - 오늘날의 인터넷
+    - 디바이스의 추가/제거 시 여러 디바이스와 그 구성을 건드려야 하는데, 인간이 하는 일이다보니 오류가 생길 수 있음
+
+#### SDN
+
+- 네트워킹의 새로운 접근
+  - IP, TCP와 같은 구조 측면이 아님
+  - 라우팅, TE와 같은 네트워크 제어 체계를 새로 설계하는 것!
+
+##### 전통적인 인터넷 → SDN
+
+- 전통적인 인터넷에서 라우터는 3개의 plane으로 나뉨: Management(구성) / Control / Data
+  - Control plane: 분배 알고리즘
+    - 위상 변화 트래킹, 경로 계산, 포워딩 규칙 정립
+  - Management plane: human time scale
+    - 측정 결과 수집 후 장비 구성
+- SDN에서는 이러한 작업을 "Logically-centralized control" 에서 수행한다!
+  - 이 LCC는 똑똑하나 느리고, 스위치는 똑똑하지 않으나 빠르다.
+  - LCC에서 switch로 연결할 때는 data plane으로 연결되는 API를 사용(Ex. OpenFlow)
+
+##### Centralized/Distributed Control
+
+Onix: 큰 크기의 production network를 위한 분배 제어 플랫폼
+
+- Centralized control
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113163315861.png" alt="image-20191113163315861" style="zoom:67%;" />
+
+- Distributed control
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113163328197.png" alt="image-20191113163328197" style="zoom:67%;" />
+
+##### Control Plane에서의 SDN 개략
+
+<img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113163424505.png" alt="image-20191113163424505" style="zoom:80%;" />
+
+- NOS(Network Operating System)
+
+  - 일관적이고 중앙화된 프로그램화된 인터페이스를 모든 네트워크에 제공
+
+    - 네트워크 자체를 관리하는 것은 아니며, 인터페이스를 제공하는 것 뿐
+
+    <img src="C:\Users\KJH\AppData\Roaming\Typora\typora-user-images\image-20191113163539555.png" alt="image-20191113163539555" style="zoom:80%;" />
+
+
+
+이 이후는 시험에 안나올듯..
