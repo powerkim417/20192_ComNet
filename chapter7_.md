@@ -18,10 +18,10 @@
 
 # Mobility
 
-## 7.5 Principles: addressing and routing to mobile users (???~???)
+## 7.5 Principles: addressing and routing to mobile users (2~15)
 
-## 7.6 Mobile IP (???~???)
+## 7.6 Mobile IP (16~26)
 
-## 7.7 Handling mobility in cellular networks (???~???)
+## 7.7 Handling mobility in cellular networks (27~36)
 
-## 7.8 Mobility and higer-layer protocols (???~???)
+## 7.8 Mobility and higer-layer protocols (37~37)
